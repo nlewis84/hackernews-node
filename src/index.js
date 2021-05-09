@@ -1,55 +1,33 @@
 const { ApolloServer } = require('apollo-server');
+const { PrismaClient } = require('@prisma/client')
 
-let links = [{
-  id: 'link-0',
-  url: 'www.howtographql.com',
-  description: 'Fullstack tutorial for GraphQL'
-}]
+
 
 // 1
-let idCount = links.length
 const resolvers = {
   Query: {
     info: () => `This is the API of a Hackernews Clone`,
-    feed: () => links,
-    link: (root, { id }) => links.find((link) => link.id === id),
+    feed: () => async (parent, args, context) => {
+      return context.prisma.link.findMany()
+    },
   },
   Mutation: {
-    // 2
-    post: (root, args) => {
-       const link = {
-        id: `link-${idCount++}`,
-        description: args.description,
-        url: args.url,
-      }
-      links.push(link)
-      return link
+    post: (parent, args, context) => {
+       const newLink = context.prisma.link.create({
+         data: {
+          description: args.description,
+          url: args.url,  
+         },
+       })
+       return newLink
+      },
     },
-    updateLink: (root, args) => {
-      let newLink;
-
-      links = link.map(link => {
-        if (link.id === args.id) {
-          newLink = { ...link, ...args };
-          return newLink;
-        }
-        return link;
-      });
-      return newLink
-    },
-    deleteLink: (root, args) => {
-      const removeIndex = links.findIndex(item => item.id === args.id);
-      const removedLink = links[removeIndex];
-      links.splice(removeIndex, 1);
-
-      return removedLink;
-    }
-  },
-}
+  }
 
 // 3
 const fs = require('fs');
 const path = require('path');
+const prisma = new PrismaClient()
 
 const server = new ApolloServer({
   typeDefs: fs.readFileSync(
@@ -57,8 +35,10 @@ const server = new ApolloServer({
     'utf8'
   ),
   resolvers,
+  context: {
+    prisma,
+  }
 })
-
 server
   .listen()
   .then(({ url }) =>
