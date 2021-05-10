@@ -19,6 +19,9 @@ const fs = require('fs');
 const path = require('path');
 const prisma = new PrismaClient()
 const { getUserId } = require('./utils');
+const { PubSub } = require('apollo-server')
+
+const pubsub = new PubSub()
 
 const server = new ApolloServer({
   typeDefs: fs.readFileSync(
@@ -30,6 +33,7 @@ const server = new ApolloServer({
     return {
       ...req,
       prisma,
+      pubsub,
       userId:
         req && req.headers.authorization
           ? getUserId(req)
